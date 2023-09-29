@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:ldk_node_flutter_quickstart/screens/home.dart';
 
 import 'styles/theme.dart';
@@ -13,11 +14,11 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'LDK NODE FLUTTER TUTORIAL',
       theme: themeData(),
-      home: const Home(),
+      home: Home(),
     );
   }
 }

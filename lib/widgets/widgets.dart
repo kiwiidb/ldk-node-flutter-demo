@@ -1,7 +1,9 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:ldk_node/ldk_node.dart' as ldk;
+import 'package:ldk_node_flutter_quickstart/controllers/nodecontroller.dart';
 import 'package:ldk_node_flutter_quickstart/styles/theme.dart';
 
 class SubmitButton extends StatelessWidget {
@@ -201,16 +203,10 @@ class StyledContainer extends StatelessWidget {
 
 class BalanceWidget extends StatelessWidget {
   final int balance;
-  final String nodeId;
-  final String listeningAddress;
-  final String fundingAddress;
-  const BalanceWidget(
-      {Key? key,
-      required this.balance,
-      required this.nodeId,
-      required this.listeningAddress,
-      required this.fundingAddress})
-      : super(key: key);
+  const BalanceWidget({
+    Key? key,
+    required this.balance,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -242,9 +238,6 @@ class BalanceWidget extends StatelessWidget {
                     fontSize: 25,
                     color: AppColors.blue,
                     fontWeight: FontWeight.w900)),
-            BoxRow(title: "Listening Address", value: listeningAddress),
-            BoxRow(title: "Node Id", value: nodeId),
-            BoxRow(title: "Funding Address", value: fundingAddress),
           ],
         ));
   }
@@ -526,48 +519,33 @@ class _ChannelsActionBarState extends State<ChannelsActionBar> {
   }
 }
 
-class ChannelListWidget extends StatefulWidget {
-  final List<ldk.ChannelDetails> channels;
-  final Future<void> Function(ldk.ChannelId channelId, ldk.PublicKey nodeId)
-      closeChannelCallBack;
+class ChannelListWidget extends StatelessWidget {
   final Future<String> Function(int amount) receivePaymentCallBack;
   final Future<String> Function(String invoice) sendPaymentCallBack;
   const ChannelListWidget({
     Key? key,
-    required this.channels,
-    required this.closeChannelCallBack,
     required this.receivePaymentCallBack,
     required this.sendPaymentCallBack,
   }) : super(key: key);
 
   @override
-  State<ChannelListWidget> createState() => _ChannelListWidgetState();
-}
-
-class _ChannelListWidgetState extends State<ChannelListWidget> {
-  int amount = 0;
-  String address = "";
-  final _receiveKey = GlobalKey<FormState>();
-  final _sendKey = GlobalKey<FormState>();
-  final _closeKey = GlobalKey<FormState>();
-  String invoice = "";
-
-  @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-        separatorBuilder: (context, index) => SizedBox(height: 10),
-        itemCount: widget.channels.length,
-        shrinkWrap: true,
-        scrollDirection: Axis.vertical,
-        itemBuilder: (context, index) => channelListItem(index, context));
+    return GetX<NodeControlller>(builder: (controller) {
+      return ListView.separated(
+          separatorBuilder: (context, index) => SizedBox(height: 10),
+          itemCount: controller.channels.length,
+          shrinkWrap: true,
+          scrollDirection: Axis.vertical,
+          itemBuilder: (context, index) =>
+              channelListItem(controller.channels[index], controller, context));
+    });
   }
 
-  ListTile channelListItem(int index, BuildContext context) {
-    final isReady = widget.channels[index].isUsable &&
-        widget.channels[index].isChannelReady;
+  ListTile channelListItem(ldk.ChannelDetails channel,
+      NodeControlller controller, BuildContext context) {
+    final isReady = channel.isUsable && channel.isChannelReady;
     var borderRadius = BorderRadius.all(Radius.circular(12));
     return ListTile(
-      tileColor: index % 2 == 0 ? Colors.grey.shade100 : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: borderRadius),
       contentPadding: EdgeInsets.all(7),
       leading: Column(
@@ -577,8 +555,7 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
             width: 25,
           ),
           SizedBox(height: 5),
-          Text(
-              '${widget.channels[index].confirmations} / ${widget.channels[index].confirmationsRequired!}',
+          Text('${channel.confirmations} / ${channel.confirmationsRequired!}',
               overflow: TextOverflow.clip,
               textAlign: TextAlign.start,
               style: TextStyle(
@@ -590,7 +567,7 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
       title: Transform(
         transform: Matrix4.translationValues(-16, 0.0, 0.0),
         child: Text(
-          widget.channels[index].channelId.internal
+          channel.channelId.internal
               .map((e) => e.toRadixString(16))
               .toList()
               .join()
@@ -611,12 +588,12 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
               children: [
                 BoxRow(
                   title: "Capacity",
-                  value: '${widget.channels[index].channelValueSats}',
+                  value: '${channel.channelValueSats}',
                   color: AppColors.blue,
                 ),
                 BoxRow(
                   title: "Local Balance",
-                  value: '${widget.channels[index].balanceMsat / 1000}',
+                  value: '${channel.balanceMsat / 1000}',
                   color: Colors.green,
                 ),
               ],
@@ -626,13 +603,12 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
               children: [
                 BoxRow(
                   title: "Inbound",
-                  value: '${widget.channels[index].inboundCapacityMsat / 1000}',
+                  value: '${channel.inboundCapacityMsat / 1000}',
                   color: Colors.green,
                 ),
                 BoxRow(
                   title: "     Outbound",
-                  value:
-                      '${widget.channels[index].outboundCapacityMsat / 1000}',
+                  value: '${channel.outboundCapacityMsat / 1000}',
                   color: Colors.red,
                 )
               ],
@@ -642,17 +618,12 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
               children: [
                 SmallButton(
                   text: "Send",
-                  callback: () => {buttonPopup(context, 1, index)},
+                  callback: () => {controller.sendPayment("")},
                   disabled: !isReady,
                 ),
                 SmallButton(
                   text: "Receive",
-                  callback: () => {buttonPopup(context, 0, index)},
-                  disabled: !isReady,
-                ),
-                SmallButton(
-                  text: "Close",
-                  callback: () => {buttonPopup(context, 2, index)},
+                  callback: () => controller.receivePayment(10000),
                   disabled: !isReady,
                 ),
               ],
@@ -664,7 +635,8 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
   }
 
   getInvoice() async {}
-  buttonPopup(BuildContext context, value, index) {
+  buttonPopup(BuildContext context, value, Function(int) receive,
+      Function(String) send) {
     if (value == 0) {
       popUpWidget(
         context: context,
@@ -672,7 +644,6 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
         widget: IntrinsicHeight(
           // height: 200,
           child: Form(
-            key: _receiveKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -687,29 +658,13 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter the Amount';
                     }
-                    setState(() {
-                      amount = int.parse(value);
-                    });
                     return null;
                   },
                 ),
                 const SizedBox(height: 5),
                 SubmitButton(
                   text: 'Receive',
-                  callback: () async {
-                    if (_receiveKey.currentState!.validate()) {
-                      String invoiceText =
-                          await widget.receivePaymentCallBack(amount);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
-                      popUpWidget(
-                        context: context,
-                        title: "Invoice",
-                        widget: SelectableText(invoiceText),
-                      );
-                    }
-                  },
+                  callback: receive(value),
                 ),
               ],
             ),
@@ -723,7 +678,6 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
         widget: SizedBox(
           height: 130,
           child: Form(
-            key: _sendKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -738,9 +692,6 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter the Invoice';
                     }
-                    setState(() {
-                      invoice = value;
-                    });
                     return null;
                   },
                 ),
@@ -749,28 +700,13 @@ class _ChannelListWidgetState extends State<ChannelListWidget> {
                 ),
                 SubmitButton(
                   text: 'Send',
-                  callback: () async {
-                    if (_sendKey.currentState!.validate()) {
-                      String status = await widget.sendPaymentCallBack(invoice);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
-                      popUpWidget(
-                        context: context,
-                        title: "Send Status",
-                        widget: SelectableText('Invoice Paid'),
-                      );
-                    }
-                  },
+                  callback: () => {},
                 )
               ],
             ),
           ),
         ),
       );
-    } else if (value == 2) {
-      widget.closeChannelCallBack(widget.channels[index].channelId,
-          widget.channels[index].counterpartyNodeId);
     }
   }
 }
