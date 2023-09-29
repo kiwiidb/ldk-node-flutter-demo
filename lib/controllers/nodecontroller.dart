@@ -5,8 +5,18 @@ import 'package:ldk_node/ldk_node.dart' as ldk;
 import 'package:path_provider/path_provider.dart';
 
 class NodeControlller extends GetxController {
-  var testMnemonic =
+  final testMnemonic =
       'bring tone raw miss kitten service hurry silk trade outside arrange deputy';
+  final storagePath = '${getApplicationDocumentsDirectory()}/LDK_NODE';
+  final albyTestnetLND1Pubkey =
+      '020a90c9961c6fc71a2d1a55bcfe12de950f6ce0a639dd0483746ac5de48edbac4';
+  final albyTestnetLND1Host = "67.207.77.188";
+  final albyTestnetLND1Port = 9735;
+
+  final esploraUrl = "https://mempool.space/testnet/api";
+  final rgsGossipSource =
+      "https://rapidsync.lightningdevkit.org/testnet/snapshot";
+
   var started = false.obs;
   var balance = 0.obs;
   final TextEditingController invoiceAmountController = TextEditingController();
@@ -21,14 +31,13 @@ class NodeControlller extends GetxController {
         persist: true);
   }
 
-  start() async {
+  start(String host, int port, String pubkey) async {
     try {
       final _ = await ldkNode.start();
       var peers = await ldkNode.listPeers();
       print(peers.length);
       if (peers.isEmpty) {
-        await connect("67.207.77.188", 9735,
-            "020a90c9961c6fc71a2d1a55bcfe12de950f6ce0a639dd0483746ac5de48edbac4");
+        await connect(host, 9735, pubkey);
       }
     } on Exception catch (e) {
       print("Error in starting Node");
@@ -36,13 +45,13 @@ class NodeControlller extends GetxController {
     }
   }
 
-  buildNode(String mnemonic) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final storagePath = "${directory.path}/LDK_NODE";
+  buildNode(
+    String mnemonic,
+    String storagePath,
+    String esplora,
+    String rgs,
+  ) async {
     print('Storage Path: $storagePath');
-    const esploraUrl = "https://mempool.space/testnet/api";
-    const rgsGossipSource =
-        "https://rapidsync.lightningdevkit.org/testnet/snapshot";
     final builder = ldk.Builder()
         .setEntropyBip39Mnemonic(mnemonic: ldk.Mnemonic(internal: mnemonic))
         .setListeningAddress(
@@ -58,9 +67,10 @@ class NodeControlller extends GetxController {
   void onInit() async {
     //init ldk
     print("building node..");
-    await buildNode(testMnemonic);
+    await buildNode(testMnemonic, storagePath, esploraUrl, rgsGossipSource);
     print("starting node..");
-    await start();
+    await start(
+        albyTestnetLND1Host, albyTestnetLND1Port, albyTestnetLND1Pubkey);
     started.value = true;
     print("connected");
     super.onInit();
