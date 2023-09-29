@@ -39,10 +39,7 @@ class Home extends StatelessWidget {
                           callback: nodeController.listChannels,
                         ),
                         /* ChannelsActionBar */
-                        ChannelListWidget(
-                          receivePaymentCallBack: nodeController.receivePayment,
-                          sendPaymentCallBack: nodeController.sendPayment,
-                        )
+                        ChannelListWidget()
                       ],
                     ),
             );

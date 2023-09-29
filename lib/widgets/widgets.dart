@@ -233,7 +233,7 @@ class BalanceWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("${balance / 100000000} BTC",
+            Text("${balance} sats",
                 style: Theme.of(context).textTheme.displayLarge!.copyWith(
                     fontSize: 25,
                     color: AppColors.blue,
@@ -520,12 +520,8 @@ class _ChannelsActionBarState extends State<ChannelsActionBar> {
 }
 
 class ChannelListWidget extends StatelessWidget {
-  final Future<String> Function(int amount) receivePaymentCallBack;
-  final Future<String> Function(String invoice) sendPaymentCallBack;
   const ChannelListWidget({
     Key? key,
-    required this.receivePaymentCallBack,
-    required this.sendPaymentCallBack,
   }) : super(key: key);
 
   @override
@@ -618,12 +614,12 @@ class ChannelListWidget extends StatelessWidget {
               children: [
                 SmallButton(
                   text: "Send",
-                  callback: () => {controller.sendPayment("")},
+                  callback: () => {buttonPopup(context, 1, controller)},
                   disabled: !isReady,
                 ),
                 SmallButton(
                   text: "Receive",
-                  callback: () => controller.receivePayment(10000),
+                  callback: () => {buttonPopup(context, 0, controller)},
                   disabled: !isReady,
                 ),
               ],
@@ -635,8 +631,7 @@ class ChannelListWidget extends StatelessWidget {
   }
 
   getInvoice() async {}
-  buttonPopup(BuildContext context, value, Function(int) receive,
-      Function(String) send) {
+  buttonPopup(BuildContext context, int value, NodeControlller ctrl) {
     if (value == 0) {
       popUpWidget(
         context: context,
@@ -648,6 +643,7 @@ class ChannelListWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 TextFormField(
+                  controller: ctrl.invoiceAmountController,
                   keyboardType: TextInputType.number,
                   style: TextStyle(
                       color: Colors.black.withOpacity(.8),
@@ -664,7 +660,7 @@ class ChannelListWidget extends StatelessWidget {
                 const SizedBox(height: 5),
                 SubmitButton(
                   text: 'Receive',
-                  callback: receive(value),
+                  callback: ctrl.receivePayment,
                 ),
               ],
             ),
@@ -682,6 +678,7 @@ class ChannelListWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 TextFormField(
+                  controller: ctrl.invoiceController,
                   keyboardType: TextInputType.text,
                   style: TextStyle(
                       color: Colors.black.withOpacity(.8),
@@ -700,7 +697,7 @@ class ChannelListWidget extends StatelessWidget {
                 ),
                 SubmitButton(
                   text: 'Send',
-                  callback: () => {},
+                  callback: () => {ctrl.sendPayment()},
                 )
               ],
             ),

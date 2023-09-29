@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:ldk_node/ldk_node.dart' as ldk;
@@ -8,6 +9,8 @@ class NodeControlller extends GetxController {
       'bring tone raw miss kitten service hurry silk trade outside arrange deputy';
   var started = false.obs;
   var balance = 0.obs;
+  final TextEditingController invoiceAmountController = TextEditingController();
+  final TextEditingController invoiceController = TextEditingController();
   var channels = <ldk.ChannelDetails>[].obs;
   late ldk.Node ldkNode;
 
@@ -65,19 +68,22 @@ class NodeControlller extends GetxController {
 
   listChannels() async {
     channels.value = await ldkNode.listChannels();
+    balance.value = (channels[0].balanceMsat / 1000).round();
+    print(balance.value);
     print(channels.value.length);
   }
 
-  Future<String> receivePayment(int amount) async {
+  Future<String> receivePayment() async {
+    var amount = int.parse(invoiceAmountController.text);
     final invoice = await ldkNode.receivePayment(
-        amountMsat: amount, description: '', expirySecs: 10000);
+        amountMsat: amount * 1000, description: '', expirySecs: 10000);
     print(invoice.internal.toString());
     return invoice.internal.toString();
   }
 
-  Future<String> sendPayment(String invoice) async {
-    final paymentHash =
-        await ldkNode.sendPayment(invoice: ldk.Invoice(internal: invoice));
+  Future<String> sendPayment() async {
+    final paymentHash = await ldkNode.sendPayment(
+        invoice: ldk.Invoice(internal: invoiceController.text));
     final res = await ldkNode.payment(paymentHash: paymentHash);
     return "${res?.status}";
   }
